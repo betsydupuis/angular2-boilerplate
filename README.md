@@ -34,3 +34,24 @@ $ nvm use v5.0.0
 ```
  npm install --global gulp-cli
 ```
+
+#### Install and build the App
+```
+$ cd ~/code/angular-boilerplate/
+$ npm install
+$ gulp build:dev
+
+```
+
+#### Start the Server
+```
+$ npm install http-server -g
+
+$ cd ~/code/angular-boilerplate/
+
+$ http-server -p 9999 -a localhost:9999
+
+```
+
+Navigate to http://localhost:9999/
+
