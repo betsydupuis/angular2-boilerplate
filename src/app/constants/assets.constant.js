@@ -6,7 +6,7 @@ angular
 function assetsConstant() {
     var thisConstant = {
         'home': '/',
-        'templates': '/reports/assets/templates'
+        'templates': '/dist/assets/templates'
     };
     return thisConstant;
 };

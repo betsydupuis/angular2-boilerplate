@@ -6,7 +6,7 @@ module.exports = function(gulp, plugins, paths) {
 
     // Initialize build with targets
     var targets = paths.html;
-    var flatten = false;
+    var flatten = true;
     buildTasks(targets);
 
     function buildTasks(targets) {

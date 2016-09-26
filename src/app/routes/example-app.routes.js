@@ -15,10 +15,10 @@ angular
         $stateProvider
             .state('index', {
                 url: '/',
-                templateUrl: assets.templates + '/app/routes/index.layout.html',
+                templateUrl: assets.templates + '/app/index.layout.html',
             })
             .state('example', {
                 url: '/example',
-                templateUrl: assets.templates + '/app/routes/example-route/example.layout.html',
+                templateUrl: assets.templates + '/app/example.layout.html',
             });
     });
