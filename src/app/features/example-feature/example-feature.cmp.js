@@ -10,7 +10,7 @@ angular
     .directive('exampleFeatureCmp', function() { // Use 'Cmp' suffix to denote a component
         var directive = {
             scope: {},
-            templateUrl: 'assets/templates/app/features/example-feature/example-feature-view.html',
+            templateUrl: 'assets/templates/app/example-feature-view.html',
             controller: 'exampleFeatureCtrl',
             controllerAs: 'vm',
             restrict: 'EA',
@@ -22,7 +22,7 @@ angular
             console.log('New Example of a Feature component created!')
         };
 
-    }).controller('exampleFeatureCtrl', function() {//exampleService
+    }).controller('exampleFeatureCtrl', function() { //exampleService
         var vm = this;
         vm.title = null;
 
