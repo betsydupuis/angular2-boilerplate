@@ -3,48 +3,68 @@ var paths = require('./options/paths.config.js');
 
 module.exports = function(gulp, plugins, paths) {
     'use strict';
-    var templatesSource = [paths.src + '/**/*.html', '!' + paths.src + '/*.html'];
-    var indexSource = '!' + paths.src + '/*.html';
-    var templatesOutputDist = paths.environment.dist + paths.output.assets.templates;
-    var indexOutputDist = paths.environment.dist;
 
+    // Initialize build with targets
+    var targets = paths.html;
+    var flatten = false;
+    buildTasks(targets);
 
-    gulp.task('build-html:index', function(){
-        buildHtml(indexSource, indexOutputDist)
-    });
+    function buildTasks(targets) {
+        var htmlTasks = [];
+        var htmlCleanTasks = [];
+        var dist, src;
 
-    gulp.task('build-html:templates', function(){
-        buildHtml(templatesSource, templatesOutputDist)
-    });
+        for (var i = 0; i < targets.length; i++) {
+            // Create task name and push to htmlTasks
+            var taskName = 'build:html:' + targets[i].name;
+            var cleanTaskName = 'clean:html:' + targets[i].name;
 
-    gulp.task('clean:html:index', function() {
-        return plugins.del([
-            paths.environment.dist + '/*.html'
+            // Push task names to array
+            htmlTasks.push(taskName);
+            htmlCleanTasks.push(cleanTaskName);
+
+            //Initialize Scripts
+            var src = targets[i].src;
+            var dist = targets[i].dist;
+
+            initializeTasks(src, dist);
+
+            function initializeTasks(src, dist) {
+                function cleanTaskScript() {
+                    cleanScript(dist);
+                };
+
+                function taskScript() {
+                    buildScript(src, dist);
+                };
+
+                gulp.task(cleanTaskName, cleanTaskScript);
+                gulp.task(taskName, taskScript);
+            };
+        };
+
+        gulp.task('clean:html', htmlCleanTasks);
+        gulp.task('build:html', function() {
+            plugins.runSequence('clean:html', htmlTasks);
+        });
+
+    };
+
+    function cleanScript(destination) {
+        plugins.del([
+            '.reports/**/*.html',
         ]);
-    });
+    };
 
-    gulp.task('clean:html:templates', function() {
-        return plugins.del([
-            templatesOutputDist + '/*.html'
-        ]);
-    });
-
-    gulp.task('clean:html', ['clean:html:index', 'clean:html:templates']);
-
-    gulp.task('build:html', function(callback){
-        plugins.runSequence(
-            'clean:html',
-            [
-                'build-html:index',
-                'build-html:templates'
-            ],
-            callback);
-    });
-
-    function buildHtml(source, destination) {
+    function buildScript(source, destination) {
         return gulp.src(source)
             // .pipe(plugins.watch(source))
-            .pipe(gulp.dest(destination));
+            .pipe(gulp.dest(function(file) {
+                if (flatten) {
+                    file.path = file.base + path.basename(file.path);
+                };
+                return destination;
+            }));
     };
 
 };

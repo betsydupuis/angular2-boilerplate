@@ -49,7 +49,7 @@ $ npm install http-server -g
 
 $ cd ~/code/angular-boilerplate/
 
-$ http-server -p 9999 -a localhost:9999
+$ http-server -p 9999
 
 ```
 

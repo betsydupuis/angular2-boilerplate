@@ -3,53 +3,87 @@ module.exports = function(gulp, plugins, paths) {
 
     // Dependencies
     var path = require('path');
-    var config = require('./options/config.js');
+    var config = require('./options/env.config.js');
     // plugins.gulpIf = require('gulp-if');
 
     // Post Processors
     var autoprefixer = require('autoprefixer');
     var discardComments = require('postcss-discard-comments');
     var cssnano = require('cssnano');
-
-    // Paths
-    var paths = require(__dirname + '/options/paths.config.js');
-    var cssOutputDist = paths.environment.dist + paths.output.assets.css;
-
-    var postProcessors = [
+    // Dev
+    var devPostProcessors = [
+        autoprefixer(),
+    ];
+    // Dist
+    var distPostProcessors = [
+        autoprefixer(),
         discardComments(),
         cssnano(),
     ];
 
-    gulp.task('compass:report-builder', function() {
-        buildScript(paths.scss.reports, cssOutputDist);
-    });
+    // Paths
+    var paths = require('./options/paths.config.js');
+    var targets = paths.scss;
 
-    gulp.task('compass:ui-common', function() {
-        buildScript(paths.scss.common, cssOutputDist);
-    });
+    // Initialize Build Tasks with SCSS Targets
+    buildTasks(targets);
 
-    gulp.task('clean:css', function() {
-        return plugins.del([
-            cssOutputDist,
+
+
+    function buildTasks(targets) {
+        var cssTasks = [];
+        var cssCleanTasks = [];
+
+        for (var i = 0; i < targets.length; i++) {
+            // Create task name and push to cssTasks
+            var taskName = 'compass:' + targets[i].name;
+            var cleanTaskName = 'compass-clean:' + targets[i].name;
+
+            // Push task names to array
+            cssTasks.push(taskName);
+            cssCleanTasks.push(cleanTaskName);
+
+            //Initialize Scripts
+            //Initialize Scripts
+            var src = targets[i].src;
+            var dist = targets[i].dist;
+            var glob = targets[i].glob;
+
+            initializeTasks(src, dist, glob);
+
+            function initializeTasks(src, dist, glob) {
+                function cleanTaskScript() {
+                    cleanScript(dist, glob);
+                };
+
+                function taskScript() {
+                    buildScript(src, dist, glob);
+                };
+
+                gulp.task(cleanTaskName, cleanTaskScript);
+                gulp.task(taskName, taskScript);
+            };
+        };
+
+        gulp.task('clean:css', cssCleanTasks);
+        gulp.task('build:css', function() {
+            plugins.runSequence('clean:css', cssTasks);
+        });
+
+    };
+
+    function cleanScript(destination, glob) {
+        plugins.del([
+            destination + (glob !== "undefined" ? glob : "")
         ]);
-    });
+    }
 
-    gulp.task('build:css', function(callback){
-        plugins.runSequence('clean:css',
-            [
-                'compass:report-builder',
-                'compass:ui-common'
-            ],
-            callback);
-    });
-
-
-    function buildScript(source, destination) {
+    function buildScript(source, destination, glob) {
         var shouldMinify = global.isProd;
         var shouldCreateSourcemap = !global.isProd || config.browserify.prodSourcemap;
         var dependencies = ['sass-globbing'];
 
-        gulp.src(source + '/*.scss')
+        gulp.src(source + glob)
             .pipe(
                 plugins.compass({
                     sass: source,
@@ -58,7 +92,8 @@ module.exports = function(gulp, plugins, paths) {
                     sourcemap: shouldCreateSourcemap
                 })
             )
-            .pipe(plugins.if(shouldMinify, plugins.postcss(postProcessors)))
+            .pipe(plugins.if(shouldMinify, plugins.postcss(distPostProcessors)))
+            .pipe(plugins.if(!shouldMinify, plugins.postcss(devPostProcessors)))
             .pipe(gulp.dest(destination));
     };
 };

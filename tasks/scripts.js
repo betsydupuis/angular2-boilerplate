@@ -23,145 +23,191 @@ import uglify from 'gulp-uglify';
 import watchify from 'watchify';
 
 // Custom Options
-import config from './options/config.js';
-import paths from './options/paths.config.js';
+import config from './options/env.config.js';
+module.exports = function(gulp, plugins, paths) {
+    // let destination = paths.environment.dist + paths.output.assets.js;
 
-let fileSource = [
-    './src/app/app.entry.js',
-    './src/common/ui-common.entry.js'
-];
-let destination = paths.environment.dist + paths.output.assets.js;
-
-gulp.task('build:scripts', function() {
-    return buildScript(fileSource, destination);
-});
+    var targets = paths.scripts;
+    return buildTasks(targets);
 
 
-/**@function buildSript
-@param {string | array} full path to fileSource(s).
-@param {string} full path to destination.
-*/
-function buildScript(fileSource, destination) {
-    let entries = fileSource;
-    const shouldCreateSourcemap = !global.isProd || config.browserify.prodSourcemap;
+    function buildTasks(targets) {
+        var scriptsTasks = [];
+        var scriptsCleanTasks = [];
+        var dist, src;
 
+        for (var i = 0; i < targets.length; i++) {
+            // Create task name and push to scriptsTasks
+            var taskName = 'build:scripts:' + targets[i].name;
+            var cleanTaskName = 'clean:scripts:' + targets[i].name;
 
-    let options = {
-        entries: entries,
-        debug: shouldCreateSourcemap,
-        cache: {},
-        packageCache: {},
-        fullPaths: !global.isProd
+            // Push task names to array
+            scriptsTasks.push(taskName);
+            scriptsCleanTasks.push(cleanTaskName);
+
+            //Initialize Scripts
+            var src = targets[i].src;
+            var dist = targets[i].dist;
+
+            initializeTasks(src, dist);
+
+            function initializeTasks(src, dist) {
+                function cleanTaskScript() {
+                    cleanScript(dist);
+                };
+
+                function taskScript() {
+                    buildScript(src, dist);
+                };
+
+                gulp.task(cleanTaskName, cleanTaskScript);
+                gulp.task(taskName, taskScript);
+            };
+        };
+
+        gulp.task('clean:scripts', scriptsCleanTasks);
+        gulp.task('build:scripts', function() {
+            plugins.runSequence('clean:scripts', scriptsTasks);
+
+        });
+
     };
 
-    let bundler = browserify(options);
-
-    if (!global.isProd) {
-        bundler = watchify(bundler);
-
-        bundler.on('update', rebundle);
+    function cleanScript(destination) {
+        plugins.del([
+            '.reports/assets/**/*.js',
+        ]);
     };
 
-    enableTransforms();
-    // enablePlugins()
-    //.on('error', handleErrors);
-    return rebundle();
+    /**@function buildSript
+    @param {string | array} full path to fileSource(s).
+    @param {string} full path to destination.
+    */
 
-    function enablePlugins() {
-        let outputPaths = splitDestinations(entries);
+    function buildScript(fileSource, destination) {
+        let entries = fileSource;
+        const shouldCreateSourcemap = !global.isProd || config.browserify.prodSourcemap;
 
-        if (outputPaths) {
-            if (fs.stat(config.browserify.bundleName)) {
-                return bundler.plugin(factor, {
-                    // File output order must match entry order
-                    o: outputPaths,
+
+        let options = {
+            entries: entries,
+            debug: shouldCreateSourcemap,
+            cache: {},
+            packageCache: {},
+            fullPaths: !global.isProd
+        };
+
+        let bundler = browserify(options);
+
+        if (!global.isProd) {
+            bundler = watchify(bundler);
+
+            bundler.on('update', rebundle);
+        };
+
+        enableTransforms();
+        // enablePlugins()
+        //.on('error', handleErrors);
+        return rebundle();
+
+        function enablePlugins() {
+            let outputPaths = splitDestinations(entries);
+
+            if (outputPaths) {
+                if (fs.stat(config.browserify.bundleName)) {
+                    return bundler.plugin(factor, {
+                        // File output order must match entry order
+                        o: outputPaths,
+                    });
+                } else {
+                    createPlaceholderFiles();
+                    return bundler.plugin(factor, {
+                        // File output order must match entry order
+                        o: outputPaths,
+                    });
+                };
+            };
+
+            /**@function writeStreams
+            @param {array}
+            */
+            function writeStreams(streams) {
+                for (var i = streams.length - 1; i >= 0; i--) {
+                    streams[i]
+                };
+            };
+
+            function write(name) {
+                return concat(function(body) {
+                    console.log('// ----- ' + name + ' -----');
+                    console.log(body.toString('utf8'));
                 });
-            } else {
-                createPlaceholderFiles();
-                return bundler.plugin(factor, {
-                    // File output order must match entry order
-                    o: outputPaths,
+            };
+
+            function createPlaceholderFiles() {
+                let dependencyPath = path.join(global.gulpDir, 'reports', paths.output.assets.js);
+                let dependencyFiles = path.join(dependencyPath, config.browserify.bundleName);
+
+                mkdirp(dependencyPath, function(err) {
+                    if (err) console.error(err)
+                    fs.openSync(dependencyFiles, 'w');
                 });
             };
-        };
 
-        /**@function writeStreams
-        @param {array}
-        */
-        function writeStreams(streams) {
-            for (var i = streams.length - 1; i >= 0; i--) {
-                streams[i]
+            function splitDestinations(entries) {
+                let newDestinations = [];
+                for (var i = 0; i < entries.length; i++) {
+                    var filePath = destination + '/' + path.basename(entries[i]);
+                    console.log(filePath);
+                    newDestinations.push(filePath);
+                };
+
+                return newDestinations;
             };
         };
 
-        function write(name) {
-            return concat(function(body) {
-                console.log('// ----- ' + name + ' -----');
-                console.log(body.toString('utf8'));
-            });
+
+        function enableTransforms() {
+            const transforms = [
+                { 'name': babelify, 'options': {} },
+                { 'name': ngAnnotate, 'options': {} },
+                { 'name': 'brfs', 'options': {} },
+                { 'name': 'bulkify', 'options': {} }
+            ];
+
+            return transforms.forEach(
+                function(transform) {
+                    bundler.transform(transform.name, transform.options);
+                }
+            );
         };
 
-        function createPlaceholderFiles() {
-            let dependencyPath = path.join(global.gulpDir, 'reports', paths.output.assets.js);
-            let dependencyFiles = path.join(dependencyPath, config.browserify.bundleName);
+        function rebundle() {
+            let fileName = path.basename(destination);
+            let dirName = path.dirname(destination);
 
-            mkdirp(dependencyPath, function(err) {
-                if (err) console.error(err)
-                fs.openSync(dependencyFiles, 'w');
-            });
+            let shouldMinify = global.isProd;
+            bundleLogger.start();
+
+            const stream = bundler.bundle();
+            const sourceMapLocation = global.isProd ? './' : '';
+
+            return stream
+                .on('error', handleErrors)
+                .on('end', bundleLogger.end)
+                .pipe(source(fileName))
+                .pipe(gulpif(shouldCreateSourcemap, buffer()))
+                .pipe(gulpif(shouldCreateSourcemap, sourcemaps.init({ loadMaps: true })))
+                .pipe(gulpif(shouldMinify, streamify(uglify({
+                    compress: { drop_console: true } // eslint-disable-line camelcase
+                }))))
+                .pipe(gulpif(shouldCreateSourcemap, sourcemaps.write(sourceMapLocation)))
+                .pipe(gulp.dest(dirName))
+                .pipe(gulpif(shouldMinify, rename({
+                    extname: ".min.js"
+                })))
+                .pipe(gulp.dest(dirName))
+                .pipe(browserSync.stream());
         };
-
-        function splitDestinations(entries) {
-            let newDestinations = [];
-            for (var i = 0; i < entries.length; i++) {
-                var filePath = destination + '/' + path.basename(entries[i]);
-                console.log(filePath);
-                newDestinations.push(filePath);
-            };
-
-            return newDestinations;
-        };
     };
-
-
-    function enableTransforms() {
-        const transforms = [
-            { 'name': babelify, 'options': {} },
-            { 'name': ngAnnotate, 'options': {} },
-            { 'name': 'brfs', 'options': {} },
-            { 'name': 'bulkify', 'options': {} }
-        ];
-
-        return transforms.forEach(
-            function(transform) {
-                bundler.transform(transform.name, transform.options);
-            }
-        );
-    };
-
-    function rebundle() {
-        let fileName = config.browserify.bundleName;
-        let shouldMinify = global.isProd;
-        bundleLogger.start();
-
-        const stream = bundler.bundle();
-        const sourceMapLocation = global.isProd ? './' : '';
-
-        return stream
-            .on('error', handleErrors)
-            .on('end', bundleLogger.end)
-            .pipe(source(fileName))
-            .pipe(gulpif(shouldCreateSourcemap, buffer()))
-            .pipe(gulpif(shouldCreateSourcemap, sourcemaps.init({ loadMaps: true })))
-            .pipe(gulpif(shouldMinify, streamify(uglify({
-                compress: { drop_console: true } // eslint-disable-line camelcase
-            }))))
-            .pipe(gulpif(shouldCreateSourcemap, sourcemaps.write(sourceMapLocation)))
-            .pipe(gulp.dest(destination))
-            .pipe(gulpif(shouldMinify, rename({
-                extname: ".min.js"
-            })))
-            .pipe(gulp.dest(destination))
-            .pipe(browserSync.stream());
-    };
-};
+}
