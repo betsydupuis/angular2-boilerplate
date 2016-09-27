@@ -1,5 +1,5 @@
-# Angular Boilerplate
-
+# Angular 2 Boilerplate
+An opinionated boilerplate for Angular 2 development. (Work in Progress)
 
 ## Quick Start for Development on localhost
 
@@ -20,9 +20,9 @@ $ brew install node
 
 $ brew install nvm
 
-$ nvm install v5.0.0
+$ nvm install v6.6.0
 
-$ nvm use v5.0.0
+$ nvm use v6.6.0
 ```
 
 #### Install Gulp-cli
@@ -55,3 +55,6 @@ $ http-server -p 9999
 
 Navigate to http://localhost:9999/
 
+## Acknowledgements & References
+
+[Offical Angular Styleguide](https://angular.io/docs/ts/latest/guide/style-guide.html)
