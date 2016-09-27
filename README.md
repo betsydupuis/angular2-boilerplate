@@ -1,6 +1,12 @@
 # Angular 2 Boilerplate
 An opinionated boilerplate for Angular 2 development. (Work in Progress)
 
+## Features
+- Gulp
+- Browserify
+- Twitter Bootstrap compiled with Compass / Sass
+
+
 ## Quick Start for Development on localhost
 
 #### Install Sass and compass
